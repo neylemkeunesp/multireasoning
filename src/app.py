@@ -107,156 +107,128 @@ if process and st.session_state.problem_input.strip():
                 # Create a new event loop for async operations
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                try:
-                    status.write("🤖 Initializing models...")
+                
+                status.write("🤖 Initializing models...")
+                
+                # Set up async task
+                task = orchestrator.solve_problem(st.session_state.problem_input)
+                
+                # Run the task with progress updates
+                result = loop.run_until_complete(task)
                     
-                    # Set up async task
-                    task = orchestrator.solve_problem(st.session_state.problem_input)
-                    
-                    # Run the task with progress updates
-                    result = loop.run_until_complete(task)
-                        
-                    # Show model responses
-                    if "agent_responses" in result:
-                        status.write(f"✓ Received {len(result['agent_responses'])} responses")
-                        with st.expander("🔍 Detailed Model Responses", expanded=False):
-                            for response in result["agent_responses"]:
-                                st.write(f"\n🤖 Response from {response['model']}:")
-                                st.code(response["raw_response"], language="markdown")
-                    
-                    status.update(label="✅ Processing complete!", state="complete")
-                except Exception as e:
-                    error_msg = str(e)
-                    st.error("Error Details:")
-                    st.error(f"Type: {type(e).__name__}")
-                    st.error(f"Message: {error_msg}")
-                    
-                    if "402 Payment Required" in error_msg:
-                        st.error("""
-                        OpenRouter API payment required. Please check:
-                        1. Account balance at https://openrouter.ai/account
-                        2. API key validity
-                        3. Account billing status
-                        """)
-                    elif "401" in error_msg:
-                        st.error("""
-                        Authentication failed. Please check:
-                        1. API key format (should start with 'sk-')
-                        2. API key validity
-                        3. API key permissions
-                        """)
-                    elif "429" in error_msg:
-                        st.error("Rate limit exceeded. Please wait a moment and try again.")
-                    st.stop()  # Stop execution here
-                finally:
+                # Show model responses
+                if "agent_responses" in result:
+                    status.write(f"✓ Received {len(result['agent_responses'])} responses")
                     try:
-                        loop.close()
+                        for response in result["agent_responses"]:
+                            st.write(f"\n🤖 Response from {response['model']}:")
+                            st.code(response["raw_response"], language="markdown")
                     except Exception as e:
-                        st.error(f"Error closing loop: {str(e)}")
-                # Enhanced result debugging
-                with st.expander("📝 Debug Information"):
-                    st.write("Raw API Response:", result)
-                    if isinstance(result, dict):
-                        st.write("Response Type: Dictionary")
-                        st.write("Keys:", list(result.keys()))
-                        if "agent_responses" in result:
-                            st.write("Number of Agent Responses:", len(result["agent_responses"]))
-                            for i, response in enumerate(result["agent_responses"]):
-                                with st.expander(f"Response {i+1} from {response['model']}"):
-                                    st.write("Raw Response:", response["raw_response"])
-                                    st.write("Processing Time:", response.get("processing_time", "N/A"))
-                                    st.write("Tokens Used:", response.get("tokens_used", "N/A"))
-                    else:
-                        st.write("Response Type:", type(result).__name__)
-                    
-                    if "summary" in result:
-                        with st.expander("Summary Details"):
-                            st.write("Summary Type:", type(result["summary"]).__name__)
-                            if isinstance(result["summary"], dict):
-                                st.write("Summary Keys:", list(result["summary"].keys()))
-                                st.write("Best Answer:", result["summary"].get("best_answer", "N/A"))
-                                st.write("Confidence:", result["summary"].get("confidence", "N/A"))
-                                st.write("Reasoning:", result["summary"].get("reasoning", "N/A"))
+                        st.error(f"Error displaying responses: {str(e)}")
+                        st.write("Raw responses:", result["agent_responses"])
                 
-                # Display results in a clean format
-                st.markdown("### 📊 Results")
-                
-                # Display summary
-                if isinstance(result["summary"], dict):
-                    status = result["summary"].get("status", "")
-                    if status == "error":
-                        st.error("❌ " + result["summary"]["message"])
-                        st.session_state.processing = False
-                    elif status == "timeout":
-                        st.warning("⚠️ " + result["summary"]["message"])
-                        st.info("💡 Best available answer: " + result["summary"]["best_answer"])
-                        st.session_state.processing = False
-                    else:
-                        st.success("✅ Analysis complete")
-                        
-                        # Create columns for the answer display
-                        answer_col1, answer_col2 = st.columns([3, 1])
-                        
-                        with answer_col1:
-                            # Display the best answer prominently
-                            st.markdown("""
-                            <div style='padding: 1rem; border-radius: 0.5rem; background-color: #f0f2f6; margin: 1rem 0;'>
-                                <h4 style='margin: 0; color: #0e1117;'>Best Answer:</h4>
-                                <p style='margin: 0.5rem 0 0 0; color: #0e1117; font-size: 1.1rem;'>{}</p>
-                            </div>
-                            """.format(result["summary"]["best_answer"]), unsafe_allow_html=True)
-                        
-                        with answer_col2:
-                            st.markdown(f"""
-                            **Confidence**: {result["summary"]["confidence"]}  
-                            **Source**: {result["summary"]["selected_from"]}
-                            """)
-                        
-                        with st.expander("🔍 Analysis Details"):
-                            st.markdown(f"""
-                            **Reasoning**:  
-                            {result["summary"]["reasoning"]}
-                            
-                            **All model answers**:
-                            """)
-                            for model, answer in result["summary"]["all_answers"].items():
-                                st.markdown(f"- **{model}**: {answer}")
-                        
-                        # Reset processing state
-                        st.session_state.processing = False
-                else:
-                    st.markdown(str(result["summary"]))
-                    st.session_state.processing = False
-                
+                status.update(label="✅ Processing complete!", state="complete")
             except Exception as e:
                 error_msg = str(e)
-                error_type = type(e).__name__
-                
-                # Enhanced error reporting
-                with st.expander("Error Details"):
-                    st.write(f"Type: {error_type}")
-                    st.write(f"Message: {error_msg}")
+                st.error("Error Details:")
+                st.error(f"Type: {type(e).__name__}")
+                st.error(f"Message: {error_msg}")
                 
                 if "402 Payment Required" in error_msg:
                     st.error("""
-                    OpenRouter API payment required. Please check your API key and account balance.
-                    
-                    Common causes:
-                    1. Insufficient credits in your OpenRouter account
-                    2. Invalid or expired API key
-                    3. Account billing issues
-                    
-                    Visit https://openrouter.ai/account to check your account status.
+                    OpenRouter API payment required. Please check:
+                    1. Account balance at https://openrouter.ai/account
+                    2. API key validity
+                    3. Account billing status
                     """)
                 elif "401" in error_msg:
                     st.error("""
-                    Authentication Error. Please check:
+                    Authentication failed. Please check:
                     1. API key format (should start with 'sk-')
                     2. API key validity
                     3. API key permissions
                     """)
                 elif "429" in error_msg:
                     st.error("Rate limit exceeded. Please wait a moment and try again.")
+                st.stop()  # Stop execution here
+            finally:
+                try:
+                    loop.close()
+                except Exception as e:
+                    st.error(f"Error closing loop: {str(e)}")
+            
+            # Enhanced result debugging
+            st.subheader("📝 Debug Information")
+            st.write("Raw API Response:", result)
+            if isinstance(result, dict):
+                st.write("Response Type: Dictionary")
+                st.write("Keys:", list(result.keys()))
+                if "agent_responses" in result:
+                    st.write("Number of Agent Responses:", len(result["agent_responses"]))
+                    for i, response in enumerate(result["agent_responses"]):
+                        st.markdown(f"**Response {i+1} from {response['model']}:**")
+                        st.write("Raw Response:", response["raw_response"])
+                        st.write("Processing Time:", response.get("processing_time", "N/A"))
+                        st.write("Tokens Used:", response.get("tokens_used", "N/A"))
+            else:
+                st.write("Response Type:", type(result).__name__)
+                
+            if "summary" in result:
+                st.markdown("**Summary Details:**")
+                st.write("Summary Type:", type(result["summary"]).__name__)
+                if isinstance(result["summary"], dict):
+                    st.write("Summary Keys:", list(result["summary"].keys()))
+                    st.write("Best Answer:", result["summary"].get("best_answer", "N/A"))
+                    st.write("Confidence:", result["summary"].get("confidence", "N/A"))
+                    st.write("Reasoning:", result["summary"].get("reasoning", "N/A"))
+            
+            # Display results in a clean format
+            st.markdown("### 📊 Results")
+            
+            # Display summary
+            if isinstance(result["summary"], dict):
+                status = result["summary"].get("status", "")
+                if status == "error":
+                    st.error("❌ " + result["summary"]["message"])
+                    st.session_state.processing = False
+                elif status == "timeout":
+                    st.warning("⚠️ " + result["summary"]["message"])
+                    st.info("💡 Best available answer: " + result["summary"]["best_answer"])
+                    st.session_state.processing = False
                 else:
-                    st.error(f"Error processing code: {error_msg}")
-                    st.exception(e)
+                    st.success("✅ Analysis complete")
+                    
+                    # Create columns for the answer display
+                    answer_col1, answer_col2 = st.columns([3, 1])
+                    
+                    with answer_col1:
+                        # Display the best answer prominently
+                        st.markdown("""
+                        <div style='padding: 1rem; border-radius: 0.5rem; background-color: #f0f2f6; margin: 1rem 0;'>
+                            <h4 style='margin: 0; color: #0e1117;'>Best Answer:</h4>
+                            <p style='margin: 0.5rem 0 0 0; color: #0e1117; font-size: 1.1rem;'>{}</p>
+                        </div>
+                        """.format(result["summary"]["best_answer"]), unsafe_allow_html=True)
+                    
+                    with answer_col2:
+                        st.markdown(f"""
+                        **Confidence**: {result["summary"]["confidence"]}  
+                        **Source**: {result["summary"]["selected_from"]}
+                        """)
+                    
+                    # Display analysis details without nesting expanders
+                    st.markdown("#### 🔍 Analysis Details")
+                    st.markdown(f"""
+                    **Reasoning**:  
+                    {result["summary"]["reasoning"]}
+                    
+                    **All model answers**:
+                    """)
+                    for model, answer in result["summary"]["all_answers"].items():
+                        st.markdown(f"- **{model}**: {answer}")
+                    
+                    # Reset processing state
+                    st.session_state.processing = False
+            else:
+                st.markdown(str(result["summary"]))
+                st.session_state.processing = False
