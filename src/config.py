@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     
     # Model configurations
     MODELS: Dict[str, str] = {
-        "o1": "openai/gpt-4",  # Primary model (using GPT-4)
-        "gemini": "google/gemini-pro",    # Secondary model
+        "o1": "openai/o1-preview",  # Primary model
+        "gemini": "google/gemini-2.0-flash-thinking-exp-1219",    # Secondary model
         "deepseek": "deepseek/deepseek-r1"  # Tertiary model (using Deepseek)
     }
     
