@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # Model configurations
     MODELS: Dict[str, str] = {
         "o1": "openai/o1-preview",  # Primary model
-        "gemini": "google/gemini-2.0-flash-thinking-exp-1219",    # Secondary model
+        "gemini": "google/gemini-2.0-flash-thinking-exp:free",    # Secondary model
         "deepseek": "deepseek/deepseek-r1"  # Tertiary model (using Deepseek)
     }
     
