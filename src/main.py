@@ -19,45 +19,45 @@ async def solve_math_problem(problem: str) -> Dict[str, Any]:
 
 def format_output(result: Dict[str, Any]) -> str:
     """
-    Format the result into a readable string.
+    Format the result into a Markdown string.
     
     Args:
         result: The solution result dictionary
         
     Returns:
-        Formatted string representation of the result
+        Markdown formatted string representation of the result
     """
     output = []
-    output.append(f"Problem: {result['problem']}\n")
+    output.append(f"# Problem\n{result['problem']}\n")
     
     # Add individual agent responses
-    output.append("Agent Responses:")
+    output.append("## Agent Responses")
     for response in result['agent_responses']:
-        output.append(f"\n{response['model']} Solution:")
-        output.append(response['raw_response'])
+        output.append(f"\n### {response['model']} Solution")
+        output.append("```\n" + response['raw_response'] + "\n```")
     
     # Add summary
-    output.append("\nSummary:")
+    output.append("\n## Summary")
     summary = result['summary']
-    output.append(f"Status: {summary['status']}")
-    output.append(f"Message: {summary['message']}")
+    output.append(f"- **Status**: {summary['status']}")
+    output.append(f"- **Message**: {summary['message']}")
     
     if summary.get('best_answer'):
-        output.append(f"Best Answer: {summary['best_answer']}")
+        output.append(f"- **Best Answer**: {summary['best_answer']}")
     
     if summary.get('confidence'):
-        output.append(f"Confidence: {summary['confidence']}")
+        output.append(f"- **Confidence**: {summary['confidence']}")
     
     if summary.get('selected_from'):
-        output.append(f"Selected from model: {summary['selected_from']}")
+        output.append(f"- **Selected from model**: {summary['selected_from']}")
     
     if summary.get('reasoning'):
-        output.append(f"\nReasoning: {summary['reasoning']}")
+        output.append(f"\n### Reasoning\n{summary['reasoning']}")
     
     # Always show all answers
-    output.append("\nAll Agent Answers:")
+    output.append("\n## All Agent Answers")
     for model, answer in summary.get('all_answers', {}).items():
-        output.append(f"{model}: {answer}")
+        output.append(f"- **{model}**: {answer}")
     
     return "\n".join(output)
 
